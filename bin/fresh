@@ -217,7 +217,7 @@ if [ "$SKIP_CACHE" = false ]; then
     rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null || true
     rm -rf ~/Library/Caches/Homebrew/* 2>/dev/null || true
     rm -rf ~/.wrangler/tmp 2>/dev/null || true
-    find ~/projects -name ".DS_Store" -depth -delete 2>/dev/null || true
+    [ -d "$HOME/projects" ] && find "$HOME/projects" -name ".DS_Store" -depth -delete 2>/dev/null || true
   '
   STATUS_CACHE="Xcode, Brew & Temp Cleared"
 
