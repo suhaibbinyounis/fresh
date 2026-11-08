@@ -1,6 +1,9 @@
 #!/bin/zsh
 # ==============================================================================
-# fresh (v2.0) - Modern All-in-One Package Updater & Disk Space Optimizer
+# fresh (v2.1) - Modern All-in-One Package Updater & Disk Space Optimizer
+# Autodetects: Homebrew, NPM, PNPM, Yarn, Bun, Deno, Pip, Pipx, uv, Conda,
+#              Rustup, Cargo, Go, Composer, Mac App Store (mas), Docker, Podman
+# Optional: macOS System Software Updates (--macos / -m)
 # https://github.com/suhaibbinyounis/fresh
 # ==============================================================================
 
@@ -27,12 +30,16 @@ rm -f "$LOG_FILE"
 
 # --- Flags & Config ---
 VERBOSE=false
-SKIP_BREW=false
-SKIP_NPM=false
-SKIP_PIP=false
-SKIP_CACHE=false
+UPDATE_MACOS=false
 EMPTY_TRASH=false
 NOTIFY=true
+
+SKIP_BREW=false
+SKIP_NODE=false
+SKIP_PYTHON=false
+SKIP_RUST=false
+SKIP_GO=false
+SKIP_CACHE=false
 
 # Parse Command-Line Arguments
 while [[ $# -gt 0 ]]; do
@@ -41,24 +48,36 @@ while [[ $# -gt 0 ]]; do
       VERBOSE=true
       shift
       ;;
+    -m|--macos)
+      UPDATE_MACOS=true
+      shift
+      ;;
+    -t|--trash)
+      EMPTY_TRASH=true
+      shift
+      ;;
     --skip-brew)
       SKIP_BREW=true
       shift
       ;;
-    --skip-npm)
-      SKIP_NPM=true
+    --skip-node)
+      SKIP_NODE=true
       shift
       ;;
-    --skip-pip)
-      SKIP_PIP=true
+    --skip-python)
+      SKIP_PYTHON=true
+      shift
+      ;;
+    --skip-rust)
+      SKIP_RUST=true
+      shift
+      ;;
+    --skip-go)
+      SKIP_GO=true
       shift
       ;;
     --skip-cache)
       SKIP_CACHE=true
-      shift
-      ;;
-    --trash|-t)
-      EMPTY_TRASH=true
       shift
       ;;
     --no-notify)
@@ -66,16 +85,19 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      echo -e "${BOLD}${C_CYAN}fresh${NC} ${DIM}v2.0${NC} — All-in-One macOS Package & Space Optimizer"
+      echo -e "${BOLD}${C_CYAN}fresh${NC} ${DIM}v2.1${NC} — Modern All-in-One macOS Package & Space Optimizer"
       echo -e "\n${BOLD}USAGE:${NC}"
       echo -e "  fresh [OPTIONS]"
       echo -e "\n${BOLD}OPTIONS:${NC}"
       echo -e "  ${C_CYAN}-v, --verbose${NC}      Show live command outputs instead of spinners"
-      echo -e "  ${C_CYAN}-t, --trash${NC}        Also empty macOS user Trash"
-      echo -e "  ${C_CYAN}--skip-brew${NC}        Skip Homebrew update and cleanup"
-      echo -e "  ${C_CYAN}--skip-npm${NC}         Skip NPM global package updates"
-      echo -e "  ${C_CYAN}--skip-pip${NC}         Skip Python / Pip updates"
-      echo -e "  ${C_CYAN}--skip-cache${NC}       Skip temporary and build cache clearing"
+      echo -e "  ${C_CYAN}-m, --macos${NC}        Check & install recommended macOS software updates"
+      echo -e "  ${C_CYAN}-t, --trash${NC}        Empty macOS user Trash during cleanup"
+      echo -e "  ${C_CYAN}--skip-brew${NC}        Skip Homebrew maintenance"
+      echo -e "  ${C_CYAN}--skip-node${NC}        Skip Node package managers (npm, pnpm, yarn, bun, deno)"
+      echo -e "  ${C_CYAN}--skip-python${NC}      Skip Python toolchains (pip, pipx, uv, conda)"
+      echo -e "  ${C_CYAN}--skip-rust${NC}        Skip Rust toolchains (rustup, cargo)"
+      echo -e "  ${C_CYAN}--skip-go${NC}          Skip Go build & module caches"
+      echo -e "  ${C_CYAN}--skip-cache${NC}       Skip developer and temporary cache clearing"
       echo -e "  ${C_CYAN}--no-notify${NC}        Disable macOS desktop notification"
       echo -e "  ${C_CYAN}-h, --help${NC}         Show this help message"
       exit 0
@@ -97,7 +119,6 @@ trap cleanup_on_interrupt SIGINT SIGTERM
 
 # --- Helper Functions ---
 get_free_bytes() {
-  # Returns free disk space in bytes on root volume
   df -b / | awk 'NR==2 {print $4 * 512}'
 }
 
@@ -158,43 +179,79 @@ run_task() {
 echo -e "${BOLD}${C_CYAN}  __               __  ${NC}"
 echo -e "${BOLD}${C_CYAN} / _| _ _ ___ ___ / /_ ${NC}"
 echo -e "${BOLD}${C_CYAN}|  _|| '_| -_|_ -|   < ${NC}"
-echo -e "${BOLD}${C_CYAN}|_|  |_| |___|___/_n_/ ${NC}${DIM}v2.0${NC}"
+echo -e "${BOLD}${C_CYAN}|_|  |_| |___|___/_n_/ ${NC}${DIM}v2.1 (Multi-Ecosystem)${NC}"
 echo -e " ${DIM}All-in-One macOS Package & Space Optimizer${NC}\n"
 
 START_BYTES=$(get_free_bytes)
 START_TIME=$(date +%s)
 
-STATUS_BREW="Skipped"
-STATUS_NPM="Skipped"
-STATUS_PIP="Skipped"
-STATUS_CACHE="Skipped"
+typeset -a SUMMARY_ROWS
 
-# --- 1. HOMEBREW ---
-if [ "$SKIP_BREW" = false ]; then
-  if command -v brew >/dev/null 2>&1; then
-    run_task "🍺" "Homebrew: Updating formulae & casks" brew update
-    run_task "📦" "Homebrew: Upgrading packages" brew upgrade
-    run_task "🧹" "Homebrew: Removing orphaned dependencies" brew autoremove
-    run_task "💾" "Homebrew: Purging old bottles & caches" zsh -c 'brew cleanup --prune=all -s && rm -rf "$(brew --cache)"'
-    STATUS_BREW="Updated & Cleaned"
-  else
-    STATUS_BREW="Not Installed"
-  fi
+# ==============================================================================
+# 1. macOS SYSTEM & MAC APP STORE
+# ==============================================================================
+if [ "$UPDATE_MACOS" = true ]; then
+  run_task "🍏" "macOS: Installing recommended system software updates" softwareupdate --install --all --recommended
+  SUMMARY_ROWS+=( "🍏 macOS System:Updates Applied" )
 fi
 
-# --- 2. NPM GLOBAL ---
-if [ "$SKIP_NPM" = false ]; then
+if command -v mas >/dev/null 2>&1; then
+  run_task "🍎" "App Store: Upgrading Mac App Store apps (mas)" mas upgrade
+  SUMMARY_ROWS+=( "🍎 Mac App Store:Apps Upgraded" )
+fi
+
+# ==============================================================================
+# 2. HOMEBREW
+# ==============================================================================
+if [ "$SKIP_BREW" = false ] && command -v brew >/dev/null 2>&1; then
+  run_task "🍺" "Homebrew: Updating formulae & casks" brew update
+  run_task "📦" "Homebrew: Upgrading packages" brew upgrade
+  run_task "🧹" "Homebrew: Removing orphaned dependencies" brew autoremove
+  run_task "💾" "Homebrew: Purging old bottles & caches" zsh -c 'brew cleanup --prune=all -s && rm -rf "$(brew --cache)"'
+  SUMMARY_ROWS+=( "🍺 Homebrew:Updated & Cleaned" )
+fi
+
+# ==============================================================================
+# 3. NODE.JS & JAVASCRIPT ECOSYSTEM (Autodetected)
+# ==============================================================================
+if [ "$SKIP_NODE" = false ]; then
+  # NPM
   if command -v npm >/dev/null 2>&1; then
-    run_task "⚡" "NPM: Updating package manager & global tools" zsh -c 'npm install -g npm@latest --quiet && npm update -g --quiet'
+    run_task "⚡" "NPM: Updating package manager & global packages" zsh -c 'npm install -g npm@latest --quiet 2>/dev/null || true && npm update -g --quiet 2>/dev/null || true'
     run_task "🗄️" "NPM: Cleaning & verifying global cache" zsh -c 'npm cache clean --force 2>/dev/null || npm cache verify'
-    STATUS_NPM="Updated & Cache Purged"
-  else
-    STATUS_NPM="Not Installed"
+    SUMMARY_ROWS+=( "⚡ NPM Global:Updated & Cache Purged" )
+  fi
+
+  # PNPM
+  if command -v pnpm >/dev/null 2>&1; then
+    run_task "📦" "PNPM: Updating global packages & pruning store" zsh -c 'pnpm update -g --quiet 2>/dev/null || true && pnpm store prune'
+    SUMMARY_ROWS+=( "📦 PNPM:Updated & Store Pruned" )
+  fi
+
+  # Yarn
+  if command -v yarn >/dev/null 2>&1; then
+    run_task "🧶" "Yarn: Updating global packages & cleaning cache" zsh -c 'yarn global upgrade --quiet 2>/dev/null || true && yarn cache clean'
+    SUMMARY_ROWS+=( "🧶 Yarn:Updated & Cache Cleaned" )
+  fi
+
+  # Bun
+  if command -v bun >/dev/null 2>&1; then
+    run_task "🥟" "Bun: Upgrading runtime & clearing module cache" zsh -c 'bun upgrade 2>/dev/null || true && bun pm cache rm 2>/dev/null || true'
+    SUMMARY_ROWS+=( "🥟 Bun:Runtime & Cache Updated" )
+  fi
+
+  # Deno
+  if command -v deno >/dev/null 2>&1; then
+    run_task "🦕" "Deno: Upgrading runtime" zsh -c 'deno upgrade 2>/dev/null || true'
+    SUMMARY_ROWS+=( "🦕 Deno:Runtime Upgraded" )
   fi
 fi
 
-# --- 3. PYTHON / PIP ---
-if [ "$SKIP_PIP" = false ]; then
+# ==============================================================================
+# 4. PYTHON ECOSYSTEM (Autodetected)
+# ==============================================================================
+if [ "$SKIP_PYTHON" = false ]; then
+  # Pip
   if command -v pip3 >/dev/null 2>&1; then
     run_task "🐍" "Python: Upgrading pip & outdated packages" zsh -c '
       pip3 install --upgrade pip --quiet 2>/dev/null || true
@@ -203,14 +260,84 @@ if [ "$SKIP_PIP" = false ]; then
         echo "$outdated" | xargs -n1 pip3 install --upgrade --quiet 2>/dev/null || true
       fi
     '
-    run_task "🗑️" "Python: Purging pip cache" pip3 cache purge
-    STATUS_PIP="Up to Date & Cache Purged"
-  else
-    STATUS_PIP="Not Installed"
+    run_task "🗑️" "Python: Purging pip wheel cache" pip3 cache purge
+    SUMMARY_ROWS+=( "🐍 Python / Pip:Up to Date & Cache Purged" )
+  fi
+
+  # Pipx
+  if command -v pipx >/dev/null 2>&1; then
+    run_task "📦" "Pipx: Upgrading isolated CLI applications" pipx upgrade-all
+    SUMMARY_ROWS+=( "📦 Pipx:Applications Upgraded" )
+  fi
+
+  # uv
+  if command -v uv >/dev/null 2>&1; then
+    run_task "⚡" "uv: Cleaning package cache" uv cache clean
+    SUMMARY_ROWS+=( "⚡ uv:Cache Cleared" )
+  fi
+
+  # Conda / Mamba
+  if command -v conda >/dev/null 2>&1; then
+    run_task "🐍" "Conda: Cleaning tarballs and unused packages" conda clean --all -y
+    SUMMARY_ROWS+=( "🐍 Conda:Unused Packages Purged" )
   fi
 fi
 
-# --- 4. CACHES & DISK CLEANUP ---
+# ==============================================================================
+# 5. RUST ECOSYSTEM (Autodetected)
+# ==============================================================================
+if [ "$SKIP_RUST" = false ]; then
+  if command -v rustup >/dev/null 2>&1; then
+    run_task "🦀" "Rust: Updating toolchains via rustup" rustup update
+    SUMMARY_ROWS+=( "🦀 Rust / Rustup:Toolchains Updated" )
+  fi
+
+  if command -v cargo >/dev/null 2>&1; then
+    run_task "📦" "Cargo: Cleaning registry and git caches" zsh -c '
+      rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
+      rm -rf ~/.cargo/git/checkouts/* 2>/dev/null || true
+    '
+    SUMMARY_ROWS+=( "📦 Cargo:Registry Cache Cleared" )
+  fi
+fi
+
+# ==============================================================================
+# 6. GO ECOSYSTEM (Autodetected)
+# ==============================================================================
+if [ "$SKIP_GO" = false ] && command -v go >/dev/null 2>&1; then
+  run_task "🐹" "Go: Cleaning module, build & test caches" go clean -cache -modcache -testcache
+  SUMMARY_ROWS+=( "🐹 Go:Module & Build Cache Cleared" )
+fi
+
+# ==============================================================================
+# 7. PHP & COMPOSER (Autodetected)
+# ==============================================================================
+if command -v composer >/dev/null 2>&1; then
+  run_task "🐘" "Composer: Updating global packages & cleaning cache" zsh -c '
+    composer global update --quiet 2>/dev/null || true
+    composer clear-cache --quiet 2>/dev/null || true
+  '
+  SUMMARY_ROWS+=( "🐘 Composer:Updated & Cache Cleared" )
+fi
+
+# ==============================================================================
+# 8. CONTAINERS (Docker / Podman - Autodetected if running)
+# ==============================================================================
+if command -v docker >/dev/null 2>&1; then
+  if docker info >/dev/null 2>&1; then
+    run_task "🐳" "Docker: Pruning dangling build caches & images" docker system prune -f
+    SUMMARY_ROWS+=( "🐳 Docker:Dangling Images Pruned" )
+  fi
+fi
+
+if command -v podman >/dev/null 2>&1; then
+  run_task "🦭" "Podman: Pruning unused containers & images" podman system prune -f
+  SUMMARY_ROWS+=( "🦭 Podman:Containers Pruned" )
+fi
+
+# ==============================================================================
+# 9. DEVELOPER & SYSTEM CACHES
+# ==============================================================================
 if [ "$SKIP_CACHE" = false ]; then
   run_task "🧹" "System: Clearing developer & app caches" zsh -c '
     rm -rf ~/.cache/* 2>/dev/null || true
@@ -219,15 +346,18 @@ if [ "$SKIP_CACHE" = false ]; then
     rm -rf ~/.wrangler/tmp 2>/dev/null || true
     [ -d "$HOME/projects" ] && find "$HOME/projects" -name ".DS_Store" -depth -delete 2>/dev/null || true
   '
-  STATUS_CACHE="Xcode, Brew & Temp Cleared"
+  CACHE_STATUS="Xcode, Brew & Temp Cleared"
 
   if [ "$EMPTY_TRASH" = true ]; then
     run_task "🗑️" "System: Emptying macOS user Trash" rm -rf ~/.Trash/*
-    STATUS_CACHE="Caches Cleared + Trash Emptied"
+    CACHE_STATUS="Caches Cleared + Trash Emptied"
   fi
+  SUMMARY_ROWS+=( "🧹 System Caches:$CACHE_STATUS" )
 fi
 
-# --- Summary & Reporting ---
+# ==============================================================================
+# 10. SUMMARY & REPORTING
+# ==============================================================================
 END_BYTES=$(get_free_bytes)
 END_TIME=$(date +%s)
 DURATION=$(( END_TIME - START_TIME ))
@@ -249,10 +379,13 @@ echo -e "${C_MAUVE}│${NC}  ${BOLD}${C_GREEN}✨  Maintenance Complete!${NC}   
 echo -e "${C_MAUVE}├────────────────────────────────────────────────────────┤${NC}"
 printf "${C_MAUVE}│${NC}  %-18s ${BOLD}%-33s${NC} ${C_MAUVE}│${NC}\n" "⏱  Time Elapsed:" "$DURATION_FORMATTED"
 printf "${C_MAUVE}│${NC}  %-18s %-42b ${C_MAUVE}│${NC}\n" "💾 Space Recovered:" "$SPACE_DISPLAY"
-printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "🍺 Homebrew:" "$STATUS_BREW"
-printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "⚡ NPM Global:" "$STATUS_NPM"
-printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "🐍 Python / Pip:" "$STATUS_PIP"
-printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "🧹 System Caches:" "$STATUS_CACHE"
+
+for row in "${SUMMARY_ROWS[@]}"; do
+  key="${row%%:*}"
+  val="${row#*:}"
+  printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "$key" "$val"
+done
+
 echo -e "${C_MAUVE}╰────────────────────────────────────────────────────────╯${NC}\n"
 
 # Optional Desktop Notification

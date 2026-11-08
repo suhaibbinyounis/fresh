@@ -2,9 +2,9 @@
 
 # 🍃 fresh
 
-**The modern, all-in-one package updater and disk space optimizer for macOS.**
+**The modern, multi-ecosystem package updater and disk space optimizer for macOS.**
 
-Keep your Mac clean, fast, and up-to-date with a single command.
+Autodetects your installed developer toolchains, upgrades packages, purges stale caches, and keeps your entire system spotless in a single command.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS-white?logo=apple&logoColor=black)](https://apple.com)
@@ -15,7 +15,7 @@ Keep your Mac clean, fast, and up-to-date with a single command.
   __               __  
  / _| _ _ ___ ___ / /_ 
 |  _|| '_| -_|_ -|   < 
-|_|  |_| |___|___/_n_/ v2.0
+|_|  |_| |___|___/_n_/ v2.1
  All-in-One macOS Package & Space Optimizer
 ```
 
@@ -25,15 +25,31 @@ Keep your Mac clean, fast, and up-to-date with a single command.
 
 ## 💡 Why `fresh`?
 
-Over time, macOS developer machines accumulate gigabytes of stale caches, orphaned package dependencies, outdated build artifacts, and old runtime wheels:
-- **Homebrew** keeps outdated formula versions and downloaded `.bottle` caches indefinitely.
-- **NPM** accumulates gigabytes in its global module cache.
-- **Pip / Python** caches old wheel downloads across releases.
-- **Xcode & Build Tools** silently horde massive `DerivedData` caches.
+Modern development means juggling multiple package managers and language toolchains. Over time, they hoard tens of gigabytes in forgotten caches, dead dependencies, and stale artifacts:
+- **Homebrew:** Keeps old bottles and formula downloads.
+- **Node.js (NPM / PNPM / Yarn / Bun / Deno):** Expands unbounded global module stores and cache trees.
+- **Python (Pip / Pipx / uv / Conda):** Accumulates cached wheel downloads and outdated libraries.
+- **Rust (Rustup / Cargo):** Leaves behind heavy git checkouts and registry caches.
+- **Go:** Retains massive compilation and module download caches.
+- **Apple & Xcode:** Hordes gigabytes of `DerivedData` build artifacts.
 
-Updating them usually means running 6–8 separate commands (`brew update`, `brew upgrade`, `brew cleanup`, `npm update -g`, `npm cache clean`, `pip cache purge`, etc.) and sitting through walls of noisy terminal output.
+**`fresh` autodetects whatever you have installed** and optimizes all of them in one command with zero configuration. If a tool isn't installed on your machine, `fresh` cleanly skips it without wasting a millisecond.
 
-**`fresh` solves this in one command.** It executes all maintenance with animated spinners, suppresses noise, reports exact disk space recovered, and pings you with a native macOS notification when finished.
+---
+
+## 🧰 Supported Ecosystems (Autodetected)
+
+| Ecosystem | Detected Tools | Maintenance Actions Performed |
+| :--- | :--- | :--- |
+| **🍎 Apple / macOS** | `softwareupdate`, `mas` | Optional macOS system updates (`-m`), Mac App Store app upgrades |
+| **🍺 Homebrew** | `brew` | Formulae & casks updated, packages upgraded, orphans autoremoved, bottles purged |
+| **⚡ JavaScript / TypeScript** | `npm`, `pnpm`, `yarn`, `bun`, `deno` | Global CLIs upgraded, runtime versions updated, package stores & caches pruned |
+| **🐍 Python** | `pip3`, `pipx`, `uv`, `conda` | Core tools updated, outdated packages upgraded, wheel & package caches purged |
+| **🦀 Rust** | `rustup`, `cargo` | Toolchains updated via `rustup`, Cargo registry & git caches cleaned |
+| **🐹 Go** | `go` | Module cache, test cache, and build cache cleaned (`go clean -cache`) |
+| **🐘 PHP** | `composer` | Global tools updated, composer cache cleared |
+| **🐳 Containers** | `docker`, `podman` | Dangling images and build caches pruned (only runs if daemon is active) |
+| **🧹 System & Developer** | Xcode, Trash | Xcode `DerivedData`, `~/.cache`, `.DS_Store` files, and optional Trash emptying (`-t`) |
 
 ---
 
@@ -43,7 +59,7 @@ Updating them usually means running 6–8 separate commands (`brew update`, `bre
   __               __  
  / _| _ _ ___ ___ / /_ 
 |  _|| '_| -_|_ -|   < 
-|_|  |_| |___|___/_n_/ v2.0
+|_|  |_| |___|___/_n_/ v2.1 (Multi-Ecosystem)
  All-in-One macOS Package & Space Optimizer
 
 ✔ 🍺 Homebrew: Formulae & casks up to date
@@ -54,17 +70,21 @@ Updating them usually means running 6–8 separate commands (`brew update`, `bre
 ✔ 🗄️ NPM: Cache verified and compressed
 ✔ 🐍 Python: Pip and packages upgraded
 ✔ 🗑️ Python: Pip wheel cache purged
+✔ 🦀 Rust: Toolchains updated via rustup
+✔ 🐹 Go: Module and build caches cleared
 ✔ 🧹 System: Xcode & developer caches cleared
 
 ╭────────────────────────────────────────────────────────╮
 │  ✨  Maintenance Complete!                            │
 ├────────────────────────────────────────────────────────┤
-│  ⏱  Time Elapsed:   28s                               │
-│  💾 Space Recovered: 3.12 GB                           │
-│  🍺 Homebrew:        Updated & Cleaned                 │
-│  ⚡ NPM Global:      Updated & Cache Purged            │
-│  🐍 Python / Pip:    Up to Date & Cache Purged         │
-│  🧹 System Caches:   Xcode, Brew & Temp Cleared        │
+│  ⏱  Time Elapsed:   32s                               │
+│  💾 Space Recovered: 4.85 GB                           │
+│  🍺 Homebrew         Updated & Cleaned                 │
+│  ⚡ NPM Global       Updated & Cache Purged            │
+│  🐍 Python / Pip     Up to Date & Cache Purged         │
+│  🦀 Rust / Rustup    Toolchains Updated                │
+│  🐹 Go               Module & Build Cache Cleared      │
+│  🧹 System Caches    Xcode, Brew & Temp Cleared        │
 ╰────────────────────────────────────────────────────────╯
 ```
 
@@ -72,45 +92,43 @@ Updating them usually means running 6–8 separate commands (`brew update`, `bre
 
 ## ⚡ Quick Start & Installation
 
-### Step 1: Clone the repository
-Clone `fresh` into your projects or tools directory:
-
 ```bash
+# 1. Clone into your projects or tools directory
 git clone https://github.com/suhaibbinyounis/fresh.git ~/projects/fresh
-cd ~/projects/fresh
+
+# 2. Run the installer (creates symlinks in ~/.local/bin)
+cd ~/projects/fresh && ./install.sh
 ```
 
-### Step 2: Run the installer
-Run the included `install.sh` script to link `fresh` to your `~/.local/bin`:
-
-```bash
-./install.sh
-```
-
-### Step 3: Verify your `$PATH`
-Ensure `~/.local/bin` is in your `PATH`. If you don't already have it in your `~/.zshrc`, add it:
-
+Ensure `~/.local/bin` is in your `$PATH` (already default in macOS if configured in `~/.zshrc`):
 ```zsh
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
 ```
-
-That's it! You can now run `fresh` from any directory.
 
 ---
 
-## 💻 Usage & Examples
+## 💻 Usage & Options
 
 ### Standard Run
-Run all updates, purge caches, and recover disk space:
+Autodetects your installed languages and runs all updates and cache cleanups:
 ```zsh
 fresh
 ```
-*(You can also use the shorthand alias `sysupdate`).*
+*(Or use the alias `sysupdate`).*
 
 ---
 
-### Clean + Empty macOS Trash
+### Update macOS System Software (`-m`, `--macos`)
+Check and install recommended macOS system software updates alongside your developer packages:
+```zsh
+fresh --macos
+# or
+fresh -m
+```
+
+---
+
+### Empty macOS User Trash (`-t`, `--trash`)
 Include emptying the user's macOS Trash during cleanup:
 ```zsh
 fresh --trash
@@ -120,72 +138,42 @@ fresh -t
 
 ---
 
-### Verbose Mode (Live Streaming Logs)
-If you prefer seeing real-time package manager logs instead of spinners:
+### Verbose Mode (`-v`, `--verbose`)
+See real-time package manager output instead of animated spinners:
 ```zsh
 fresh --verbose
-# or
-fresh -v
 ```
 
 ---
 
 ### Selective Skipping
-In a hurry and want to skip specific subsystems?
-
+In a hurry and want to skip specific ecosystems?
 ```zsh
-# Skip Homebrew (e.g. only update npm and python)
-fresh --skip-brew
-
-# Skip NPM global packages
-fresh --skip-npm
-
-# Skip Python / Pip
-fresh --skip-pip
-
-# Only run updates without purging caches
-fresh --skip-cache
-
-# Disable macOS desktop notification
-fresh --no-notify
+fresh --skip-brew     # Skip Homebrew
+fresh --skip-node     # Skip NPM, PNPM, Yarn, Bun, Deno
+fresh --skip-python   # Skip Pip, Pipx, uv, Conda
+fresh --skip-rust     # Skip Rustup and Cargo
+fresh --skip-go       # Skip Go
+fresh --skip-cache    # Skip developer & temporary cache clearing
+fresh --no-notify     # Disable desktop completion notification
 ```
-
----
-
-## 🔍 What `fresh` Cleans Under the Hood
-
-| Subsystem | Actions Performed |
-| :--- | :--- |
-| **Homebrew** | Runs `brew update` + `brew upgrade` + `brew autoremove`. Purges old bottle archives via `brew cleanup --prune=all` and deletes `$(brew --cache)`. |
-| **NPM Global** | Upgrades `npm` to latest, updates global packages (`npm update -g`), and runs cache garbage collection (`npm cache clean --force` / `npm cache verify`). |
-| **Python / Pip** | Upgrades `pip` to latest, upgrades outdated pip packages, and runs `pip3 cache purge`. |
-| **Developer Caches** | Purges Xcode `~/Library/Developer/Xcode/DerivedData`, Homebrew API cache, `~/.cache`, and project `.DS_Store` files. |
-| **User Trash** | Empties `~/.Trash` when the `--trash` flag is provided. |
 
 ---
 
 ## ❓ FAQ & Troubleshooting
 
 #### Does `fresh` require `sudo` / admin privileges?
-**No.** `fresh` operates 100% within your user permissions (`~/.local/bin`, Homebrew prefix, user caches). It never requires or asks for your system password.
+**No.** `fresh` operates 100% within your user permissions. It never asks for or requires your system password.
 
 #### How do I update `fresh`?
-Simply pull the latest changes from the repo:
+Simply pull the latest changes:
 ```bash
-cd ~/projects/fresh
-git pull
+cd ~/projects/fresh && git pull
 ```
-Because the binary in `~/.local/bin` is symlinked to your project repository, any updates are applied immediately.
-
-#### How do I uninstall `fresh`?
-Remove the symlinks and delete the folder:
-```bash
-rm -f ~/.local/bin/fresh ~/.local/bin/sysupdate
-rm -rf ~/projects/fresh
-```
+Because the executable in `~/.local/bin` is symlinked directly to your project repository, all updates apply immediately.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
