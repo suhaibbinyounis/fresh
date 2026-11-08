@@ -2,12 +2,13 @@
 
 # 🍃 fresh
 
-**The modern, multi-ecosystem package updater and disk space optimizer for macOS.**
+### **The Modern, Multi-Ecosystem Package Updater & Disk Optimizer for macOS**
 
-Autodetects your installed developer toolchains, upgrades packages, purges stale caches, and keeps your entire system spotless in a single command.
+*One command to upgrade every package manager, secure your TLS trust store, purge stale developer caches, and reclaim gigabytes of disk space.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS-white?logo=apple&logoColor=black)](https://apple.com)
+[![Apple Silicon: Optimized](https://img.shields.io/badge/Apple_Silicon-M1_|_M2_|_M3_|_M4-orange?logo=apple)](https://apple.com)
 [![Shell: Zsh](https://img.shields.io/badge/Shell-Zsh-f38ba8?logo=zsh&logoColor=white)](https://www.zsh.org/)
 [![Theme: Catppuccin](https://img.shields.io/badge/Theme-Catppuccin_Mocha-cba6f7?logo=catppuccin&logoColor=white)](https://github.com/catppuccin/catppuccin)
 
@@ -25,39 +26,44 @@ All-in-One macOS Package & Space Optimizer
 
 ---
 
-## 💡 Why `fresh`?
+## ✨ Highlights
 
-Modern development means juggling multiple package managers and language toolchains. Over time, they hoard tens of gigabytes in forgotten caches, dead dependencies, and stale artifacts:
-- **Homebrew:** Keeps old bottles and formula downloads.
-- **Node.js (NPM / PNPM / Yarn / Bun / Deno):** Expands unbounded global module stores and cache trees.
-- **Python (Pip / Pipx / uv / Conda):** Accumulates cached wheel downloads and outdated libraries.
-- **Rust (Rustup / Cargo):** Leaves behind heavy git checkouts and registry caches.
-- **Go:** Retains massive compilation and module download caches.
-- **Apple & Xcode:** Hordes gigabytes of `DerivedData` build artifacts.
-
-**`fresh` autodetects whatever you have installed** and optimizes all of them in one command with zero configuration. If a tool isn't installed on your machine, `fresh` cleanly skips it without wasting a millisecond.
+- 🚀 **Zero-Config Autodetection:** Discovers whatever developer toolchains you have installed (Homebrew, NPM, PNPM, Yarn, Bun, Deno, Pip, Pipx, uv, Conda, Rust, Go, Java, PHP, Docker) and optimizes them without manual configuration.
+- 🔒 **TLS & Root CA Security:** Automatically updates Mozilla Root CA certificates, rehashes OpenSSL 3 & 4 directories, and upgrades Python `certifi` to protect against expired, compromised, or revoked SSL authorities.
+- 🔋 **Battery-First & Apple Silicon Native:** Configured with macOS `ProcessType: Background` to run exclusively on low-power **Efficiency cores (E-cores)** with low-priority I/O. Automatically pauses background maintenance if battery is below 25%.
+- 🤖 **Zero-Touch Startup Maintenance:** Optional macOS `launchd` integration that runs silently when you log in and connect to the internet, then notifies you via desktop banner.
+- 🎨 **Catppuccin Mocha UI:** Beautiful animated spinners, real-time status icons, and an aligned summary card—zero terminal spam or log clutter.
 
 ---
 
-## 🧰 Supported Ecosystems (Autodetected)
+## ⚡ Quick Start (1-Line Install)
 
-| Ecosystem | Detected Tools | Maintenance Actions Performed |
-| :--- | :--- | :--- |
-| **🔒 Security & TLS** | `ca-certificates`, `certifi`, OpenSSL | Syncs Mozilla root CA bundle, rehashes OpenSSL hashes, upgrades Python `certifi` |
-| **🍎 Apple / macOS** | `softwareupdate`, `mas` | Optional macOS system updates (`-m`), Mac App Store app upgrades |
-| **🍺 Homebrew** | `brew` | Formulae & casks updated, packages upgraded, orphans autoremoved, bottles purged |
-| **⚡ JavaScript / TypeScript** | `npm`, `pnpm`, `yarn`, `bun`, `deno` | Global CLIs upgraded, runtime versions updated, package stores & caches pruned |
-| **🐍 Python** | `pip3`, `pipx`, `uv`, `conda` | Core tools updated, outdated packages upgraded, wheel & package caches purged |
-| **☕ Java / JVM** | `sdkman`, `gradle` | SDKMAN candidates upgraded, Gradle wrapper & build caches purged |
-| **🦀 Rust** | `rustup`, `cargo` | Toolchains updated via `rustup`, Cargo registry & git caches cleaned |
-| **🐹 Go** | `go` | Module cache, test cache, and build cache cleaned (`go clean -cache`) |
-| **🐘 PHP** | `composer` | Global tools updated, composer cache cleared |
-| **🐳 Containers** | `docker`, `podman` | Dangling images and build caches pruned (only runs if daemon is active) |
-| **🧹 System & Developer** | Xcode, Trash | Xcode `DerivedData`, `~/.cache`, `.DS_Store` files, and optional Trash emptying (`-t`) |
+Open your terminal and paste:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/suhaibbinyounis/fresh/main/install.sh | bash
+```
+
+<details>
+<summary><b>Or install manually via Git Clone</b></summary>
+
+```bash
+# Clone the repository
+git clone https://github.com/suhaibbinyounis/fresh.git ~/projects/fresh
+
+# Run installer (creates symlinks in ~/.local/bin)
+cd ~/projects/fresh && ./install.sh
+```
+
+Ensure `~/.local/bin` is in your `$PATH` (standard on modern macOS):
+```zsh
+export PATH="$HOME/.local/bin:$PATH"
+```
+</details>
 
 ---
 
-## 🖥️ Terminal Preview
+## 🖥️ Terminal Experience
 
 ```text
     ____               __  
@@ -66,12 +72,13 @@ Modern development means juggling multiple package managers and language toolcha
  / __/ /  /  __(__  ) / / /
 /_/ /_/   \___/____/_/ /_/ 
 
-All-in-One macOS Package & Space Optimizer
+All-in-One macOS Package & Space Optimizer v2.1
 
 ✔ 🍺 Homebrew: Formulae & casks up to date
 ✔ 📦 Homebrew: Packages upgraded
 ✔ 🧹 Homebrew: Orphaned dependencies removed
 ✔ 💾 Homebrew: Old bottles and caches purged
+✔ 🔒 Security: CA certificate bundle & OpenSSL trust synced
 ✔ ⚡ NPM: Global packages updated
 ✔ 🗄️ NPM: Cache verified and compressed
 ✔ 🐍 Python: Pip and packages upgraded
@@ -83,119 +90,118 @@ All-in-One macOS Package & Space Optimizer
 ╭────────────────────────────────────────────────────────╮
 │  ✨  Maintenance Complete!                            │
 ├────────────────────────────────────────────────────────┤
-│  ⏱  Time Elapsed:   32s                               │
-│  💾 Space Recovered: 4.85 GB                           │
+│  ⏱  Time Elapsed:   28s                               │
+│  💾 Space Recovered: 3.12 GB                           │
 │  🍺 Homebrew         Updated & Cleaned                 │
+│  🔒 CA Trust         Bundle & Certs Synced             │
 │  ⚡ NPM Global       Updated & Cache Purged            │
 │  🐍 Python / Pip     Up to Date & Cache Purged         │
 │  🦀 Rust / Rustup    Toolchains Updated                │
 │  🐹 Go               Module & Build Cache Cleared      │
-│  🧹 System Caches    Xcode, Brew & Temp Cleared        │
+│  🧹 System Caches    Xcode, Wrangler & Temp Cleared    │
 ╰────────────────────────────────────────────────────────╯
 ```
 
 ---
 
-## ⚡ Quick Start & Installation
+## 🧰 Supported Ecosystems
 
-```bash
-# 1. Clone into your projects or tools directory
-git clone https://github.com/suhaibbinyounis/fresh.git ~/projects/fresh
+`fresh` checks your environment in milliseconds. If a tool isn't installed, it skips it cleanly without wasting CPU cycles.
 
-# 2. Run the installer (creates symlinks in ~/.local/bin)
-cd ~/projects/fresh && ./install.sh
-```
-
-Ensure `~/.local/bin` is in your `$PATH` (already default in macOS if configured in `~/.zshrc`):
-```zsh
-export PATH="$HOME/.local/bin:$PATH"
-```
+| Ecosystem | Detected Tools | Maintenance Actions Performed |
+| :--- | :--- | :--- |
+| **🔒 Security & TLS** | `ca-certificates`, `certifi`, OpenSSL | Upgrades Mozilla root CA bundle, rehashes OpenSSL 3 & 4 hashes, upgrades `certifi` |
+| **🍺 Homebrew** | `brew` | Formulae & casks updated, packages upgraded, orphans autoremoved, bottles purged |
+| **⚡ JavaScript / TypeScript** | `npm`, `pnpm`, `yarn`, `bun`, `deno` | Global CLIs upgraded, runtime versions updated, package stores & caches pruned |
+| **🐍 Python** | `pip3`, `pipx`, `uv`, `conda` | Core tools updated, outdated packages upgraded, wheel & package caches purged |
+| **☕ Java / JVM** | `sdkman`, `gradle` | SDKMAN candidates upgraded, Gradle wrapper & build caches purged |
+| **🦀 Rust** | `rustup`, `cargo` | Toolchains updated via `rustup`, Cargo registry & git checkouts cleaned |
+| **🐹 Go** | `go` | Module cache, test cache, and build cache cleaned (`go clean -cache`) |
+| **🐘 PHP** | `composer` | Global tools updated, composer cache cleared |
+| **🍎 Apple / macOS** | `softwareupdate`, `mas` | Optional macOS system updates (`-m`), Mac App Store app upgrades |
+| **🐳 Containers** | `docker`, `podman` | Dangling images and build caches pruned (only runs if daemon is active) |
+| **🧹 System & Developer** | Xcode, Wrangler, Trash | Xcode `DerivedData`, `~/.cache`, `.DS_Store` files, and optional Trash emptying (`-t`) |
 
 ---
 
-## 💻 Usage & Options
+## 💻 CLI Cheat Sheet
 
-### Standard Run
-Autodetects your installed languages and runs all updates and cache cleanups:
 ```zsh
+# 🟢 Standard run (updates all package managers & purges caches)
 fresh
-```
-*(Or use the alias `sysupdate`).*
 
----
+# 🍎 Include macOS system software updates
+fresh --macos
+# or: fresh -m
 
-### Automated Background Maintenance (Run on Boot / Login)
-Make `fresh` automatically run whenever you open your Mac and connect to the internet:
+# 🗑️ Include emptying macOS user Trash
+fresh --trash
+# or: fresh -t
 
-```zsh
-# Enable automated login & internet maintenance
+# 🤖 Enable automated background maintenance on boot & internet connect
 fresh --enable-autostart
 
-# Disable automated login maintenance
+# 🛑 Disable automated background maintenance
 fresh --disable-autostart
-```
 
-When enabled:
-- `launchd` triggers `fresh` in the background when you log in.
-- **🔋 Battery & Energy Efficient:** Configured with Apple Silicon `ProcessType: Background` (scheduled on low-power E-cores), `LowPriorityIO` (disk reads yield to user work), and automatically skips if battery is below 25%.
-- It waits until Wi-Fi / Ethernet connects to the internet before running.
-- Once finished, it drops a native macOS notification on your desktop with the recovered disk space.
-
----
-
-### Update macOS System Software (`-m`, `--macos`)
-Check and install recommended macOS system software updates alongside your developer packages:
-```zsh
-fresh --macos
-# or
-fresh -m
-```
-
----
-
-### Empty macOS User Trash (`-t`, `--trash`)
-Include emptying the user's macOS Trash during cleanup:
-```zsh
-fresh --trash
-# or
-fresh -t
-```
-
----
-
-### Verbose Mode (`-v`, `--verbose`)
-See real-time package manager output instead of animated spinners:
-```zsh
+# 📺 Stream raw package manager output instead of animated spinners
 fresh --verbose
+# or: fresh -v
+
+# ⚡ Skip specific subsystems when in a rush
+fresh --skip-brew
+fresh --skip-node
+fresh --skip-python
+fresh --skip-rust
+fresh --skip-go
+fresh --skip-cache
 ```
 
 ---
 
-### Selective Skipping
-In a hurry and want to skip specific ecosystems?
-```zsh
-fresh --skip-brew     # Skip Homebrew
-fresh --skip-node     # Skip NPM, PNPM, Yarn, Bun, Deno
-fresh --skip-python   # Skip Pip, Pipx, uv, Conda
-fresh --skip-rust     # Skip Rustup and Cargo
-fresh --skip-go       # Skip Go
-fresh --skip-cache    # Skip developer & temporary cache clearing
-fresh --no-notify     # Disable desktop completion notification
-```
+## 🔋 Battery & Energy Architecture
+
+`fresh` is specifically optimized for Apple Silicon (M1, M2, M3, M4) and MacBook battery health:
+
+1. **Zero Standing Footprint:** `fresh` is **not a daemon**. It runs once, finishes in seconds, and completely exits (0% CPU, 0 MB RAM when idle).
+2. **Efficiency Core Scheduling:** The LaunchAgent runs under macOS `ProcessType: Background`, instructing Grand Central Dispatch to schedule tasks exclusively on low-power **E-cores**.
+3. **Throttled Disk I/O:** Configured with `LowPriorityIO` and `Nice: 15`, ensuring background tasks yield immediately to user applications.
+4. **Low-Battery Safeguard:** If running on battery power and charge is below **25%**, automated startup maintenance automatically cancels itself to preserve battery.
+5. **3-Hour Cooldown:** Automated maintenance enforces a strict 3-hour minimum interval, preventing repeated runs if your laptop lid is repeatedly opened and closed.
 
 ---
 
-## ❓ FAQ & Troubleshooting
+## ❓ FAQ
 
 #### Does `fresh` require `sudo` / admin privileges?
-**No.** `fresh` operates 100% within your user permissions. It never asks for or requires your system password.
+**No.** `fresh` operates 100% within standard user permissions. It never asks for, requires, or logs your system password.
 
 #### How do I update `fresh`?
-Simply pull the latest changes:
+Pull the latest release from the repository:
 ```bash
 cd ~/projects/fresh && git pull
 ```
-Because the executable in `~/.local/bin` is symlinked directly to your project repository, all updates apply immediately.
+Because the binary in `~/.local/bin` is symlinked directly to your project repository, all updates are immediately active.
+
+#### How do I uninstall `fresh`?
+```bash
+# 1. Disable autostart if active
+fresh --disable-autostart
+
+# 2. Remove symlinks and project folder
+rm -f ~/.local/bin/fresh ~/.local/bin/sysupdate
+rm -rf ~/projects/fresh
+```
+
+---
+
+## 🤝 Contributing & Community
+
+Contributions, suggestions, and feedback are welcome!
+- Found a bug or want support for another package manager? Open an [Issue](https://github.com/suhaibbinyounis/fresh/issues).
+- Want to contribute code? Submit a [Pull Request](https://github.com/suhaibbinyounis/fresh/pulls).
+
+⭐ **If `fresh` saved you gigabytes of disk space, please consider giving it a star on GitHub!**
 
 ---
 
