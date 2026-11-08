@@ -77,7 +77,7 @@ while [[ $# -gt 0 ]]; do
         <string>/bin/zsh</string>
         <string>-l</string>
         <string>-c</string>
-        <string>$HOME/.local/bin/fresh --autostart</string>
+        <string>fresh --autostart</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
