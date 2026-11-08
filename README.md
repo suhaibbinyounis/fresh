@@ -137,6 +137,7 @@ fresh --disable-autostart
 
 When enabled:
 - `launchd` triggers `fresh` in the background when you log in.
+- **🔋 Battery & Energy Efficient:** Configured with Apple Silicon `ProcessType: Background` (scheduled on low-power E-cores), `LowPriorityIO` (disk reads yield to user work), and automatically skips if battery is below 25%.
 - It waits until Wi-Fi / Ethernet connects to the internet before running.
 - Once finished, it drops a native macOS notification on your desktop with the recovered disk space.
 
