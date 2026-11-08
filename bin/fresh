@@ -33,6 +33,7 @@ VERBOSE=false
 UPDATE_MACOS=false
 EMPTY_TRASH=false
 NOTIFY=true
+IS_AUTOSTART=false
 
 SKIP_BREW=false
 SKIP_NODE=false
@@ -55,6 +56,53 @@ while [[ $# -gt 0 ]]; do
     -t|--trash)
       EMPTY_TRASH=true
       shift
+      ;;
+    --autostart)
+      IS_AUTOSTART=true
+      shift
+      ;;
+    --enable-autostart)
+      PLIST_DIR="$HOME/Library/LaunchAgents"
+      PLIST_FILE="$PLIST_DIR/com.suhaib.fresh.plist"
+      mkdir -p "$PLIST_DIR"
+      cat > "$PLIST_FILE" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.suhaib.fresh</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>-l</string>
+        <string>-c</string>
+        <string>$HOME/.local/bin/fresh --autostart</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/fresh-autostart.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/fresh-autostart.log</string>
+</dict>
+</plist>
+EOF
+      launchctl unload "$PLIST_FILE" 2>/dev/null || true
+      launchctl load -w "$PLIST_FILE"
+      echo -e "${C_GREEN}✔${NC} Autostart enabled! 'fresh' will run automatically whenever your Mac boots/logs in and connects to the internet."
+      exit 0
+      ;;
+    --disable-autostart)
+      PLIST_FILE="$HOME/Library/LaunchAgents/com.suhaib.fresh.plist"
+      if [ -f "$PLIST_FILE" ]; then
+        launchctl unload -w "$PLIST_FILE" 2>/dev/null || true
+        rm -f "$PLIST_FILE"
+        echo -e "${C_GREEN}✔${NC} Autostart disabled. LaunchAgent removed."
+      else
+        echo -e "${C_YELLOW}ℹ${NC} Autostart is not currently enabled."
+      fi
+      exit 0
       ;;
     --skip-brew)
       SKIP_BREW=true
@@ -89,17 +137,19 @@ while [[ $# -gt 0 ]]; do
       echo -e "\n${BOLD}USAGE:${NC}"
       echo -e "  fresh [OPTIONS]"
       echo -e "\n${BOLD}OPTIONS:${NC}"
-      echo -e "  ${C_CYAN}-v, --verbose${NC}      Show live command outputs instead of spinners"
-      echo -e "  ${C_CYAN}-m, --macos${NC}        Check & install recommended macOS software updates"
-      echo -e "  ${C_CYAN}-t, --trash${NC}        Empty macOS user Trash during cleanup"
-      echo -e "  ${C_CYAN}--skip-brew${NC}        Skip Homebrew maintenance"
-      echo -e "  ${C_CYAN}--skip-node${NC}        Skip Node package managers (npm, pnpm, yarn, bun, deno)"
-      echo -e "  ${C_CYAN}--skip-python${NC}      Skip Python toolchains (pip, pipx, uv, conda)"
-      echo -e "  ${C_CYAN}--skip-rust${NC}        Skip Rust toolchains (rustup, cargo)"
-      echo -e "  ${C_CYAN}--skip-go${NC}          Skip Go build & module caches"
-      echo -e "  ${C_CYAN}--skip-cache${NC}       Skip developer and temporary cache clearing"
-      echo -e "  ${C_CYAN}--no-notify${NC}        Disable macOS desktop notification"
-      echo -e "  ${C_CYAN}-h, --help${NC}         Show this help message"
+      echo -e "  ${C_CYAN}-v, --verbose${NC}          Show live command outputs instead of spinners"
+      echo -e "  ${C_CYAN}-m, --macos${NC}            Check & install recommended macOS software updates"
+      echo -e "  ${C_CYAN}-t, --trash${NC}            Empty macOS user Trash during cleanup"
+      echo -e "  ${C_CYAN}--enable-autostart${NC}     Run automatically on login when internet is connected"
+      echo -e "  ${C_CYAN}--disable-autostart${NC}    Disable automated login maintenance"
+      echo -e "  ${C_CYAN}--skip-brew${NC}            Skip Homebrew maintenance"
+      echo -e "  ${C_CYAN}--skip-node${NC}            Skip Node package managers (npm, pnpm, yarn, bun, deno)"
+      echo -e "  ${C_CYAN}--skip-python${NC}          Skip Python toolchains (pip, pipx, uv, conda)"
+      echo -e "  ${C_CYAN}--skip-rust${NC}            Skip Rust toolchains (rustup, cargo)"
+      echo -e "  ${C_CYAN}--skip-go${NC}              Skip Go build & module caches"
+      echo -e "  ${C_CYAN}--skip-cache${NC}           Skip developer and temporary cache clearing"
+      echo -e "  ${C_CYAN}--no-notify${NC}            Disable macOS desktop notification"
+      echo -e "  ${C_CYAN}-h, --help${NC}             Show this help message"
       exit 0
       ;;
     *)
@@ -174,6 +224,36 @@ run_task() {
     printf "\r${C_RED}✖${NC} ${icon} %s ${DIM}(failed - see %s)${NC}\033[K\n" "$label" "$LOG_FILE"
   fi
 }
+
+# --- Autostart Guard: Wait for Internet & Rate Limit ---
+if [ "$IS_AUTOSTART" = true ]; then
+  local connected=false
+  for i in {1..30}; do
+    if nc -zw2 1.1.1.1 53 >/dev/null 2>&1 || curl -s --connect-timeout 2 -I https://1.1.1.1 >/dev/null 2>&1; then
+      connected=true
+      break
+    fi
+    sleep 2
+  done
+
+  if [ "$connected" = false ]; then
+    echo "fresh [autostart]: No internet connection detected after 60s. Aborting." >> /tmp/fresh-autostart.log
+    exit 0
+  fi
+
+  LAST_RUN_FILE="$HOME/.local/share/fresh/last_run"
+  mkdir -p "$HOME/.local/share/fresh"
+  if [ -f "$LAST_RUN_FILE" ]; then
+    local last_time=$(stat -f %m "$LAST_RUN_FILE" 2>/dev/null || stat -c %Y "$LAST_RUN_FILE" 2>/dev/null || echo 0)
+    local now=$(date +%s)
+    local diff=$(( now - last_time ))
+    if [ "$diff" -lt 10800 ]; then
+      echo "fresh [autostart]: Already ran $(( diff / 60 )) minutes ago. Skipping." >> /tmp/fresh-autostart.log
+      exit 0
+    fi
+  fi
+  touch "$LAST_RUN_FILE"
+fi
 
 # --- Banner ---
 echo -e "${BOLD}${C_CYAN}"
@@ -434,3 +514,7 @@ echo -e "${C_MAUVE}╰───────────────────�
 if [ "$NOTIFY" = true ] && [ "$DURATION" -ge 4 ]; then
   osascript -e "display notification \"Recovered $SPACE_FORMATTED in ${DURATION}s\" with title \"fresh\" subtitle \"Maintenance Complete ✨\"" 2>/dev/null || true
 fi
+
+# Record completion timestamp
+mkdir -p "$HOME/.local/share/fresh"
+touch "$HOME/.local/share/fresh/last_run"

@@ -124,6 +124,24 @@ fresh
 
 ---
 
+### Automated Background Maintenance (Run on Boot / Login)
+Make `fresh` automatically run whenever you open your Mac and connect to the internet:
+
+```zsh
+# Enable automated login & internet maintenance
+fresh --enable-autostart
+
+# Disable automated login maintenance
+fresh --disable-autostart
+```
+
+When enabled:
+- `launchd` triggers `fresh` in the background when you log in.
+- It waits until Wi-Fi / Ethernet connects to the internet before running.
+- Once finished, it drops a native macOS notification on your desktop with the recovered disk space.
+
+---
+
 ### Update macOS System Software (`-m`, `--macos`)
 Check and install recommended macOS system software updates alongside your developer packages:
 ```zsh
