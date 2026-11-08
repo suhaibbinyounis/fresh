@@ -1,146 +1,261 @@
 #!/bin/zsh
 # ==============================================================================
-# fresh - All-in-one system updater and space cleaner for macOS
-# Updates: Homebrew, Global NPM, Python/Pip
-# Cleans: Package caches, orphaned dependencies, and temp build artifacts
+# fresh (v2.0) - Modern All-in-One Package Updater & Disk Space Optimizer
+# https://github.com/suhaibbinyounis/fresh
 # ==============================================================================
 
 set -e
-setopt NULL_GLOB  # Prevent zsh glob errors if directories are empty
+setopt NULL_GLOB 2>/dev/null || true
 
-# Styling
-BOLD='\033[1m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# --- Catppuccin Mocha Palette & Styling ---
+BOLD="\033[1m"
+DIM="\033[2m"
+NC="\033[0m"
 
-print_step() {
-  echo -e "\n${BOLD}${BLUE}==>${NC} ${BOLD}$1${NC}"
+# Colors
+C_TEXT="\033[38;2;205;214;244m"
+C_BLUE="\033[38;2;137;180;250m"
+C_CYAN="\033[38;2;137;220;235m"
+C_GREEN="\033[38;2;166;227;161m"
+C_YELLOW="\033[38;2;249;226;175m"
+C_PEACH="\033[38;2;250;179;135m"
+C_RED="\033[38;2;243;139;168m"
+C_MAUVE="\033[38;2;203;166;247m"
+
+LOG_FILE="/tmp/fresh.log"
+rm -f "$LOG_FILE"
+
+# --- Flags & Config ---
+VERBOSE=false
+SKIP_BREW=false
+SKIP_NPM=false
+SKIP_PIP=false
+SKIP_CACHE=false
+EMPTY_TRASH=false
+NOTIFY=true
+
+# Parse Command-Line Arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -v|--verbose)
+      VERBOSE=true
+      shift
+      ;;
+    --skip-brew)
+      SKIP_BREW=true
+      shift
+      ;;
+    --skip-npm)
+      SKIP_NPM=true
+      shift
+      ;;
+    --skip-pip)
+      SKIP_PIP=true
+      shift
+      ;;
+    --skip-cache)
+      SKIP_CACHE=true
+      shift
+      ;;
+    --trash|-t)
+      EMPTY_TRASH=true
+      shift
+      ;;
+    --no-notify)
+      NOTIFY=false
+      shift
+      ;;
+    -h|--help)
+      echo -e "${BOLD}${C_CYAN}fresh${NC} ${DIM}v2.0${NC} — All-in-One macOS Package & Space Optimizer"
+      echo -e "\n${BOLD}USAGE:${NC}"
+      echo -e "  fresh [OPTIONS]"
+      echo -e "\n${BOLD}OPTIONS:${NC}"
+      echo -e "  ${C_CYAN}-v, --verbose${NC}      Show live command outputs instead of spinners"
+      echo -e "  ${C_CYAN}-t, --trash${NC}        Also empty macOS user Trash"
+      echo -e "  ${C_CYAN}--skip-brew${NC}        Skip Homebrew update and cleanup"
+      echo -e "  ${C_CYAN}--skip-npm${NC}         Skip NPM global package updates"
+      echo -e "  ${C_CYAN}--skip-pip${NC}         Skip Python / Pip updates"
+      echo -e "  ${C_CYAN}--skip-cache${NC}       Skip temporary and build cache clearing"
+      echo -e "  ${C_CYAN}--no-notify${NC}        Disable macOS desktop notification"
+      echo -e "  ${C_CYAN}-h, --help${NC}         Show this help message"
+      exit 0
+      ;;
+    *)
+      echo -e "${C_RED}Unknown option: $1${NC} (run ${C_CYAN}fresh --help${NC} for options)"
+      exit 1
+      ;;
+  esac
+done
+
+# Cleanup on exit or Ctrl+C
+cleanup_on_interrupt() {
+  printf "\e[?25h" # Restore cursor
+  echo -e "\n\n${C_RED}✖ Interrupted by user.${NC}"
+  exit 130
+}
+trap cleanup_on_interrupt SIGINT SIGTERM
+
+# --- Helper Functions ---
+get_free_bytes() {
+  # Returns free disk space in bytes on root volume
+  df -b / | awk 'NR==2 {print $4 * 512}'
 }
 
-print_success() {
-  echo -e "${GREEN}✔${NC} $1"
-}
-
-print_info() {
-  echo -e "${CYAN}ℹ${NC} $1"
-}
-
-# 1. Measure initial free disk space
-get_free_kb() {
-  df -k / | awk 'NR==2 {print $4}'
-}
-
-START_TIME=$(date +%s)
-START_KB=$(get_free_kb)
-
-echo -e "${BOLD}${CYAN}"
-cat << 'EOF'
-    ____              __  
-   / __/______  _____/ /_ 
-  / /_/ ___/ _ \/ ___/ __ \
- / __/ /  /  __(__  ) / / /
-/_/ /_/   \___/____/_/ /_/ 
-EOF
-echo -e "${NC}${BOLD}All-in-One System Maintenance & Package Updater${NC}\n"
-
-# ------------------------------------------------------------------------------
-# 1. HOMEBREW
-# ------------------------------------------------------------------------------
-if command -v brew >/dev/null 2>&1; then
-  print_step "Updating Homebrew formulae & casks..."
-  brew update
-
-  print_step "Upgrading installed packages..."
-  brew upgrade
-
-  print_step "Removing orphaned dependencies..."
-  brew autoremove
-
-  print_step "Cleaning old versions and bottle caches..."
-  brew cleanup --prune=all -s
-  rm -rf "$(brew --cache)" 2>/dev/null || true
-
-  print_success "Homebrew is up to date and clean!"
-else
-  print_info "Homebrew not found, skipping."
-fi
-
-# ------------------------------------------------------------------------------
-# 2. NPM GLOBAL PACKAGES
-# ------------------------------------------------------------------------------
-if command -v npm >/dev/null 2>&1; then
-  print_step "Updating npm and global packages..."
-  npm install -g npm@latest --quiet 2>/dev/null || true
-  npm update -g --quiet 2>/dev/null || true
-
-  print_step "Cleaning npm cache..."
-  npm cache clean --force >/dev/null 2>&1 || npm cache verify >/dev/null 2>&1
-
-  print_success "Global npm packages up to date and cache cleaned!"
-else
-  print_info "NPM not found, skipping."
-fi
-
-# ------------------------------------------------------------------------------
-# 3. PYTHON / PIP
-# ------------------------------------------------------------------------------
-if command -v pip3 >/dev/null 2>&1; then
-  print_step "Updating pip..."
-  pip3 install --upgrade pip --quiet 2>/dev/null || true
-
-  print_step "Checking for outdated Python packages..."
-  OUTDATED_PIP=$(pip3 list --outdated --format=freeze 2>/dev/null | cut -d= -f1 || true)
-  if [ -n "$OUTDATED_PIP" ]; then
-    echo "$OUTDATED_PIP" | while read -r pkg; do
-      if [ -n "$pkg" ]; then
-        echo -e "  Upgrading $pkg..."
-        pip3 install --upgrade "$pkg" --quiet 2>/dev/null || true
-      fi
-    done
-    print_success "Python packages upgraded."
+format_bytes() {
+  local bytes=$1
+  if (( bytes >= 1073741824 )); then
+    printf "%.2f GB" $(( bytes / 1073741824.0 ))
+  elif (( bytes >= 1048576 )); then
+    printf "%.1f MB" $(( bytes / 1048576.0 ))
+  elif (( bytes >= 1024 )); then
+    printf "%.0f KB" $(( bytes / 1024.0 ))
   else
-    print_info "All Python packages are already up to date."
+    printf "%d B" "$bytes"
+  fi
+}
+
+run_task() {
+  local icon="$1"
+  local label="$2"
+  shift 2
+
+  if [ "$VERBOSE" = true ]; then
+    echo -e "\n${BOLD}${C_BLUE}${icon} ${label}...${NC}"
+    "$@"
+    echo -e "${C_GREEN}✔${NC} ${label} ${DIM}done${NC}"
+    return 0
   fi
 
-  print_step "Purging pip cache..."
-  pip3 cache purge >/dev/null 2>&1 || true
-  print_success "Pip cache purged!"
-else
-  print_info "Pip3 not found, skipping."
+  # Run in background and pipe to log file
+  "$@" >> "$LOG_FILE" 2>&1 &
+  local pid=$!
+
+  # Spinner loop
+  local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  local i=1
+  printf "\e[?25l" # Hide cursor
+
+  while kill -0 $pid 2>/dev/null; do
+    printf "\r${C_BLUE}%s${NC} ${icon} %s\033[K" "${frames[$i]}" "$label"
+    i=$(( (i % 10) + 1 ))
+    sleep 0.08
+  done
+
+  # Check exit code
+  wait $pid
+  local exit_code=$?
+
+  printf "\e[?25h" # Show cursor
+
+  if [ $exit_code -eq 0 ]; then
+    printf "\r${C_GREEN}✔${NC} ${icon} %s\033[K\n" "$label"
+  else
+    printf "\r${C_RED}✖${NC} ${icon} %s ${DIM}(failed - see %s)${NC}\033[K\n" "$label" "$LOG_FILE"
+  fi
+}
+
+# --- Banner ---
+echo -e "${BOLD}${C_CYAN}  __               __  ${NC}"
+echo -e "${BOLD}${C_CYAN} / _| _ _ ___ ___ / /_ ${NC}"
+echo -e "${BOLD}${C_CYAN}|  _|| '_| -_|_ -|   < ${NC}"
+echo -e "${BOLD}${C_CYAN}|_|  |_| |___|___/_n_/ ${NC}${DIM}v2.0${NC}"
+echo -e " ${DIM}All-in-One macOS Package & Space Optimizer${NC}\n"
+
+START_BYTES=$(get_free_bytes)
+START_TIME=$(date +%s)
+
+STATUS_BREW="Skipped"
+STATUS_NPM="Skipped"
+STATUS_PIP="Skipped"
+STATUS_CACHE="Skipped"
+
+# --- 1. HOMEBREW ---
+if [ "$SKIP_BREW" = false ]; then
+  if command -v brew >/dev/null 2>&1; then
+    run_task "🍺" "Homebrew: Updating formulae & casks" brew update
+    run_task "📦" "Homebrew: Upgrading packages" brew upgrade
+    run_task "🧹" "Homebrew: Removing orphaned dependencies" brew autoremove
+    run_task "💾" "Homebrew: Purging old bottles & caches" zsh -c 'brew cleanup --prune=all -s && rm -rf "$(brew --cache)"'
+    STATUS_BREW="Updated & Cleaned"
+  else
+    STATUS_BREW="Not Installed"
+  fi
 fi
 
-# ------------------------------------------------------------------------------
-# 4. SYSTEM & DEVELOPER CACHES
-# ------------------------------------------------------------------------------
-print_step "Cleaning temporary files & developer caches..."
+# --- 2. NPM GLOBAL ---
+if [ "$SKIP_NPM" = false ]; then
+  if command -v npm >/dev/null 2>&1; then
+    run_task "⚡" "NPM: Updating package manager & global tools" zsh -c 'npm install -g npm@latest --quiet && npm update -g --quiet'
+    run_task "🗄️" "NPM: Cleaning & verifying global cache" zsh -c 'npm cache clean --force 2>/dev/null || npm cache verify'
+    STATUS_NPM="Updated & Cache Purged"
+  else
+    STATUS_NPM="Not Installed"
+  fi
+fi
 
-# Safely remove temporary build/cache artifacts
-rm -rf ~/.cache/* 2>/dev/null || true
-rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null || true
-rm -rf ~/Library/Caches/Homebrew/* 2>/dev/null || true
+# --- 3. PYTHON / PIP ---
+if [ "$SKIP_PIP" = false ]; then
+  if command -v pip3 >/dev/null 2>&1; then
+    run_task "🐍" "Python: Upgrading pip & outdated packages" zsh -c '
+      pip3 install --upgrade pip --quiet 2>/dev/null || true
+      outdated=$(pip3 list --outdated --format=freeze 2>/dev/null | cut -d= -f1 || true)
+      if [ -n "$outdated" ]; then
+        echo "$outdated" | xargs -n1 pip3 install --upgrade --quiet 2>/dev/null || true
+      fi
+    '
+    run_task "🗑️" "Python: Purging pip cache" pip3 cache purge
+    STATUS_PIP="Up to Date & Cache Purged"
+  else
+    STATUS_PIP="Not Installed"
+  fi
+fi
 
-print_success "Temporary caches cleared!"
+# --- 4. CACHES & DISK CLEANUP ---
+if [ "$SKIP_CACHE" = false ]; then
+  run_task "🧹" "System: Clearing developer & app caches" zsh -c '
+    rm -rf ~/.cache/* 2>/dev/null || true
+    rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null || true
+    rm -rf ~/Library/Caches/Homebrew/* 2>/dev/null || true
+    rm -rf ~/.wrangler/tmp 2>/dev/null || true
+    find ~/projects -name ".DS_Store" -depth -delete 2>/dev/null || true
+  '
+  STATUS_CACHE="Xcode, Brew & Temp Cleared"
 
-# ------------------------------------------------------------------------------
-# 5. SUMMARY
-# ------------------------------------------------------------------------------
+  if [ "$EMPTY_TRASH" = true ]; then
+    run_task "🗑️" "System: Emptying macOS user Trash" rm -rf ~/.Trash/*
+    STATUS_CACHE="Caches Cleared + Trash Emptied"
+  fi
+fi
+
+# --- Summary & Reporting ---
+END_BYTES=$(get_free_bytes)
 END_TIME=$(date +%s)
-END_KB=$(get_free_kb)
-DURATION=$((END_TIME - START_TIME))
+DURATION=$(( END_TIME - START_TIME ))
 
-DIFF_KB=$((END_KB - START_KB))
-if [ "$DIFF_KB" -gt 0 ]; then
-  DIFF_MB=$((DIFF_KB / 1024))
-  SPACE_MSG="${GREEN}Freed approximately ${DIFF_MB} MB of disk space!${NC}"
+DIFF_BYTES=$(( END_BYTES - START_BYTES ))
+if (( DIFF_BYTES > 0 )); then
+  SPACE_FORMATTED=$(format_bytes $DIFF_BYTES)
+  SPACE_DISPLAY="${BOLD}${C_GREEN}${SPACE_FORMATTED}${NC}"
 else
-  SPACE_MSG="System was already clean."
+  SPACE_FORMATTED="0 B"
+  SPACE_DISPLAY="${DIM}System was already clean${NC}"
 fi
 
-echo -e "\n${BOLD}${GREEN}====================================================${NC}"
-echo -e "${BOLD}${GREEN}✨ All updates and maintenance completed in ${DURATION}s!${NC}"
-echo -e "   $SPACE_MSG"
-echo -e "${BOLD}${GREEN}====================================================${NC}\n"
+DURATION_FORMATTED="${DURATION}s"
+
+# Render Gorgeous Summary Card
+echo -e "\n${C_MAUVE}╭────────────────────────────────────────────────────────╮${NC}"
+echo -e "${C_MAUVE}│${NC}  ${BOLD}${C_GREEN}✨  Maintenance Complete!${NC}                            ${C_MAUVE}│${NC}"
+echo -e "${C_MAUVE}├────────────────────────────────────────────────────────┤${NC}"
+printf "${C_MAUVE}│${NC}  %-18s ${BOLD}%-33s${NC} ${C_MAUVE}│${NC}\n" "⏱  Time Elapsed:" "$DURATION_FORMATTED"
+printf "${C_MAUVE}│${NC}  %-18s %-42b ${C_MAUVE}│${NC}\n" "💾 Space Recovered:" "$SPACE_DISPLAY"
+printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "🍺 Homebrew:" "$STATUS_BREW"
+printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "⚡ NPM Global:" "$STATUS_NPM"
+printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "🐍 Python / Pip:" "$STATUS_PIP"
+printf "${C_MAUVE}│${NC}  %-18s %-33s ${C_MAUVE}│${NC}\n" "🧹 System Caches:" "$STATUS_CACHE"
+echo -e "${C_MAUVE}╰────────────────────────────────────────────────────────╯${NC}\n"
+
+# Optional Desktop Notification
+if [ "$NOTIFY" = true ] && [ "$DURATION" -ge 4 ]; then
+  osascript -e "display notification \"Recovered $SPACE_FORMATTED in ${DURATION}s\" with title \"fresh\" subtitle \"Maintenance Complete ✨\"" 2>/dev/null || true
+fi
