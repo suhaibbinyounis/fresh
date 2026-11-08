@@ -43,10 +43,12 @@ Modern development means juggling multiple package managers and language toolcha
 
 | Ecosystem | Detected Tools | Maintenance Actions Performed |
 | :--- | :--- | :--- |
+| **🔒 Security & TLS** | `ca-certificates`, `certifi`, OpenSSL | Syncs Mozilla root CA bundle, rehashes OpenSSL hashes, upgrades Python `certifi` |
 | **🍎 Apple / macOS** | `softwareupdate`, `mas` | Optional macOS system updates (`-m`), Mac App Store app upgrades |
 | **🍺 Homebrew** | `brew` | Formulae & casks updated, packages upgraded, orphans autoremoved, bottles purged |
 | **⚡ JavaScript / TypeScript** | `npm`, `pnpm`, `yarn`, `bun`, `deno` | Global CLIs upgraded, runtime versions updated, package stores & caches pruned |
 | **🐍 Python** | `pip3`, `pipx`, `uv`, `conda` | Core tools updated, outdated packages upgraded, wheel & package caches purged |
+| **☕ Java / JVM** | `sdkman`, `gradle` | SDKMAN candidates upgraded, Gradle wrapper & build caches purged |
 | **🦀 Rust** | `rustup`, `cargo` | Toolchains updated via `rustup`, Cargo registry & git caches cleaned |
 | **🐹 Go** | `go` | Module cache, test cache, and build cache cleaned (`go clean -cache`) |
 | **🐘 PHP** | `composer` | Global tools updated, composer cache cleared |

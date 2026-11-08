@@ -216,6 +216,25 @@ if [ "$SKIP_BREW" = false ] && command -v brew >/dev/null 2>&1; then
 fi
 
 # ==============================================================================
+# 3. SECURITY & CA CERTIFICATES (Mozilla Bundle & OpenSSL Trust)
+# ==============================================================================
+if command -v brew >/dev/null 2>&1; then
+  run_task "🔒" "Security: Syncing CA certificate bundle & OpenSSL trust" zsh -c '
+    brew upgrade ca-certificates --quiet 2>/dev/null || true
+    for ssl_bin in /opt/homebrew/opt/openssl@4/bin/openssl /opt/homebrew/opt/openssl@3/bin/openssl; do
+      if [ -x "$ssl_bin" ]; then
+        "$ssl_bin" rehash /opt/homebrew/etc/openssl@4/certs 2>/dev/null || true
+        "$ssl_bin" rehash /opt/homebrew/etc/openssl@3/certs 2>/dev/null || true
+      fi
+    done
+    if command -v pip3 >/dev/null 2>&1; then
+      pip3 install --upgrade certifi --quiet 2>/dev/null || true
+    fi
+  '
+  SUMMARY_ROWS+=( "🔒 CA Trust:Bundle & Certs Synced" )
+fi
+
+# ==============================================================================
 # 3. NODE.JS & JAVASCRIPT ECOSYSTEM (Autodetected)
 # ==============================================================================
 if [ "$SKIP_NODE" = false ]; then
@@ -306,11 +325,31 @@ if [ "$SKIP_RUST" = false ]; then
 fi
 
 # ==============================================================================
-# 6. GO ECOSYSTEM (Autodetected)
+# 7. GO ECOSYSTEM (Autodetected)
 # ==============================================================================
 if [ "$SKIP_GO" = false ] && command -v go >/dev/null 2>&1; then
   run_task "🐹" "Go: Cleaning module, build & test caches" go clean -cache -modcache -testcache
   SUMMARY_ROWS+=( "🐹 Go:Module & Build Cache Cleared" )
+fi
+
+# ==============================================================================
+# 8. JAVA & JVM ECOSYSTEM (Autodetected)
+# ==============================================================================
+if [ -d "$HOME/.sdkman" ]; then
+  run_task "☕" "Java: Upgrading SDKMAN candidates" zsh -c '
+    export SDKMAN_DIR="$HOME/.sdkman"
+    [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+    sdk selfupdate force 2>/dev/null || true
+    sdk upgrade 2>/dev/null || true
+  '
+  SUMMARY_ROWS+=( "☕ Java / SDKMAN:SDKs Upgraded" )
+fi
+
+if [ -d "$HOME/.gradle/caches" ]; then
+  run_task "🐘" "Gradle: Purging stale wrapper & build caches" zsh -c '
+    rm -rf ~/.gradle/caches/transforms-* 2>/dev/null || true
+    rm -rf ~/.gradle/caches/journal-* 2>/dev/null || true
+  '
 fi
 
 # ==============================================================================
