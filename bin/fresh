@@ -1,0 +1,146 @@
+#!/bin/zsh
+# ==============================================================================
+# fresh - All-in-one system updater and space cleaner for macOS
+# Updates: Homebrew, Global NPM, Python/Pip
+# Cleans: Package caches, orphaned dependencies, and temp build artifacts
+# ==============================================================================
+
+set -e
+setopt NULL_GLOB  # Prevent zsh glob errors if directories are empty
+
+# Styling
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+print_step() {
+  echo -e "\n${BOLD}${BLUE}==>${NC} ${BOLD}$1${NC}"
+}
+
+print_success() {
+  echo -e "${GREEN}✔${NC} $1"
+}
+
+print_info() {
+  echo -e "${CYAN}ℹ${NC} $1"
+}
+
+# 1. Measure initial free disk space
+get_free_kb() {
+  df -k / | awk 'NR==2 {print $4}'
+}
+
+START_TIME=$(date +%s)
+START_KB=$(get_free_kb)
+
+echo -e "${BOLD}${CYAN}"
+cat << 'EOF'
+    ____              __  
+   / __/______  _____/ /_ 
+  / /_/ ___/ _ \/ ___/ __ \
+ / __/ /  /  __(__  ) / / /
+/_/ /_/   \___/____/_/ /_/ 
+EOF
+echo -e "${NC}${BOLD}All-in-One System Maintenance & Package Updater${NC}\n"
+
+# ------------------------------------------------------------------------------
+# 1. HOMEBREW
+# ------------------------------------------------------------------------------
+if command -v brew >/dev/null 2>&1; then
+  print_step "Updating Homebrew formulae & casks..."
+  brew update
+
+  print_step "Upgrading installed packages..."
+  brew upgrade
+
+  print_step "Removing orphaned dependencies..."
+  brew autoremove
+
+  print_step "Cleaning old versions and bottle caches..."
+  brew cleanup --prune=all -s
+  rm -rf "$(brew --cache)" 2>/dev/null || true
+
+  print_success "Homebrew is up to date and clean!"
+else
+  print_info "Homebrew not found, skipping."
+fi
+
+# ------------------------------------------------------------------------------
+# 2. NPM GLOBAL PACKAGES
+# ------------------------------------------------------------------------------
+if command -v npm >/dev/null 2>&1; then
+  print_step "Updating npm and global packages..."
+  npm install -g npm@latest --quiet 2>/dev/null || true
+  npm update -g --quiet 2>/dev/null || true
+
+  print_step "Cleaning npm cache..."
+  npm cache clean --force >/dev/null 2>&1 || npm cache verify >/dev/null 2>&1
+
+  print_success "Global npm packages up to date and cache cleaned!"
+else
+  print_info "NPM not found, skipping."
+fi
+
+# ------------------------------------------------------------------------------
+# 3. PYTHON / PIP
+# ------------------------------------------------------------------------------
+if command -v pip3 >/dev/null 2>&1; then
+  print_step "Updating pip..."
+  pip3 install --upgrade pip --quiet 2>/dev/null || true
+
+  print_step "Checking for outdated Python packages..."
+  OUTDATED_PIP=$(pip3 list --outdated --format=freeze 2>/dev/null | cut -d= -f1 || true)
+  if [ -n "$OUTDATED_PIP" ]; then
+    echo "$OUTDATED_PIP" | while read -r pkg; do
+      if [ -n "$pkg" ]; then
+        echo -e "  Upgrading $pkg..."
+        pip3 install --upgrade "$pkg" --quiet 2>/dev/null || true
+      fi
+    done
+    print_success "Python packages upgraded."
+  else
+    print_info "All Python packages are already up to date."
+  fi
+
+  print_step "Purging pip cache..."
+  pip3 cache purge >/dev/null 2>&1 || true
+  print_success "Pip cache purged!"
+else
+  print_info "Pip3 not found, skipping."
+fi
+
+# ------------------------------------------------------------------------------
+# 4. SYSTEM & DEVELOPER CACHES
+# ------------------------------------------------------------------------------
+print_step "Cleaning temporary files & developer caches..."
+
+# Safely remove temporary build/cache artifacts
+rm -rf ~/.cache/* 2>/dev/null || true
+rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null || true
+rm -rf ~/Library/Caches/Homebrew/* 2>/dev/null || true
+
+print_success "Temporary caches cleared!"
+
+# ------------------------------------------------------------------------------
+# 5. SUMMARY
+# ------------------------------------------------------------------------------
+END_TIME=$(date +%s)
+END_KB=$(get_free_kb)
+DURATION=$((END_TIME - START_TIME))
+
+DIFF_KB=$((END_KB - START_KB))
+if [ "$DIFF_KB" -gt 0 ]; then
+  DIFF_MB=$((DIFF_KB / 1024))
+  SPACE_MSG="${GREEN}Freed approximately ${DIFF_MB} MB of disk space!${NC}"
+else
+  SPACE_MSG="System was already clean."
+fi
+
+echo -e "\n${BOLD}${GREEN}====================================================${NC}"
+echo -e "${BOLD}${GREEN}✨ All updates and maintenance completed in ${DURATION}s!${NC}"
+echo -e "   $SPACE_MSG"
+echo -e "${BOLD}${GREEN}====================================================${NC}\n"
