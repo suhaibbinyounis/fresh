@@ -36,8 +36,18 @@ All-in-One macOS Package & Space Optimizer
 
 ---
 
-## ⚡ Quick Start (1-Line Install)
+## ⚡ Quick Start & Installation
 
+### Option 1: Install via Homebrew (Recommended)
+Install directly using Homebrew:
+
+```zsh
+brew install suhaibbinyounis/tap/fresh
+```
+
+---
+
+### Option 2: 1-Line Quick Install (curl)
 Open your terminal and paste:
 
 ```bash
@@ -45,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/suhaibbinyounis/fresh/main/install.
 ```
 
 <details>
-<summary><b>Or install manually via Git Clone</b></summary>
+<summary><b>Option 3: Manual Install via Git Clone</b></summary>
 
 ```bash
 # Clone the repository
