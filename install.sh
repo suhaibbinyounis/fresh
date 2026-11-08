@@ -13,4 +13,15 @@ ln -sf "$SCRIPT_DIR/bin/fresh" "$INSTALL_DIR/fresh"
 ln -sf "$SCRIPT_DIR/bin/fresh" "$INSTALL_DIR/sysupdate"
 
 echo "✔ Successfully installed 'fresh' and 'sysupdate' to $INSTALL_DIR"
-echo "  Run 'fresh' or 'sysupdate' from anywhere in your terminal!"
+
+# Check if ~/.local/bin is in PATH
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+  echo ""
+  echo "⚠️  Note: $INSTALL_DIR is not currently in your \$PATH."
+  echo "   Add it to your shell config (~/.zshrc or ~/.bashrc):"
+  echo "   echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc"
+  echo "   source ~/.zshrc"
+fi
+
+echo ""
+echo "✨ Ready! Run 'fresh' or 'sysupdate' from anywhere in your terminal."
