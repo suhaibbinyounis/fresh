@@ -8,15 +8,17 @@ Autodetects your installed developer toolchains, upgrades packages, purges stale
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS-white?logo=apple&logoColor=black)](https://apple.com)
-[![Shell: Zsh](https://img.shields.io/badge/Shell-Zsh-f38ba8.svg)](https://www.zsh.org/)
-[![Theme: Catppuccin](https://img.shields.io/badge/Theme-Catppuccin_Mocha-cba6f7.svg)](https://github.com/catppuccin/catppuccin)
+[![Shell: Zsh](https://img.shields.io/badge/Shell-Zsh-f38ba8?logo=zsh&logoColor=white)](https://www.zsh.org/)
+[![Theme: Catppuccin](https://img.shields.io/badge/Theme-Catppuccin_Mocha-cba6f7?logo=catppuccin&logoColor=white)](https://github.com/catppuccin/catppuccin)
 
 ```text
-  __               __  
- / _| _ _ ___ ___ / /_ 
-|  _|| '_| -_|_ -|   < 
-|_|  |_| |___|___/_n_/ v2.1
- All-in-One macOS Package & Space Optimizer
+    ____               __  
+   / __/______  _____/ /_ 
+  / /_/ ___/ _ \/ ___/ __ \
+ / __/ /  /  __(__  ) / / /
+/_/ /_/   \___/____/_/ /_/ 
+
+All-in-One macOS Package & Space Optimizer
 ```
 
 </div>
@@ -56,11 +58,13 @@ Modern development means juggling multiple package managers and language toolcha
 ## 🖥️ Terminal Preview
 
 ```text
-  __               __  
- / _| _ _ ___ ___ / /_ 
-|  _|| '_| -_|_ -|   < 
-|_|  |_| |___|___/_n_/ v2.1 (Multi-Ecosystem)
- All-in-One macOS Package & Space Optimizer
+    ____               __  
+   / __/______  _____/ /_ 
+  / /_/ ___/ _ \/ ___/ __ \
+ / __/ /  /  __(__  ) / / /
+/_/ /_/   \___/____/_/ /_/ 
+
+All-in-One macOS Package & Space Optimizer
 
 ✔ 🍺 Homebrew: Formulae & casks up to date
 ✔ 📦 Homebrew: Packages upgraded

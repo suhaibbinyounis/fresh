@@ -176,11 +176,15 @@ run_task() {
 }
 
 # --- Banner ---
-echo -e "${BOLD}${C_CYAN}  __               __  ${NC}"
-echo -e "${BOLD}${C_CYAN} / _| _ _ ___ ___ / /_ ${NC}"
-echo -e "${BOLD}${C_CYAN}|  _|| '_| -_|_ -|   < ${NC}"
-echo -e "${BOLD}${C_CYAN}|_|  |_| |___|___/_n_/ ${NC}${DIM}v2.1 (Multi-Ecosystem)${NC}"
-echo -e " ${DIM}All-in-One macOS Package & Space Optimizer${NC}\n"
+echo -e "${BOLD}${C_CYAN}"
+cat << 'EOF'
+    ____               __  
+   / __/______  _____/ /_ 
+  / /_/ ___/ _ \/ ___/ __ \
+ / __/ /  /  __(__  ) / / /
+/_/ /_/   \___/____/_/ /_/ 
+EOF
+echo -e "${NC}${BOLD}All-in-One macOS Package & Space Optimizer${NC} ${DIM}v2.1${NC}\n"
 
 START_BYTES=$(get_free_bytes)
 START_TIME=$(date +%s)
@@ -342,11 +346,10 @@ if [ "$SKIP_CACHE" = false ]; then
   run_task "🧹" "System: Clearing developer & app caches" zsh -c '
     rm -rf ~/.cache/* 2>/dev/null || true
     rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null || true
-    rm -rf ~/Library/Caches/Homebrew/* 2>/dev/null || true
     rm -rf ~/.wrangler/tmp 2>/dev/null || true
     [ -d "$HOME/projects" ] && find "$HOME/projects" -name ".DS_Store" -depth -delete 2>/dev/null || true
   '
-  CACHE_STATUS="Xcode, Brew & Temp Cleared"
+  CACHE_STATUS="Xcode, Wrangler & Temp Cleared"
 
   if [ "$EMPTY_TRASH" = true ]; then
     run_task "🗑️" "System: Emptying macOS user Trash" rm -rf ~/.Trash/*
